@@ -4,7 +4,7 @@ module Parser where
 
 import Data.Char
 import Control.Monad.Except
-import Errors
+import PartialT
 import UntypedLambda
 import qualified Data.Array as Happy_Data_Array
 import qualified GHC.Exts as Happy_GHC_Exts

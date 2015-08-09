@@ -4,7 +4,7 @@ import System.IO
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Trans.Free
-import Errors
+import PartialT
 import UntypedLambda
 import Parser
 

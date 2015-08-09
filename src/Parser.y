@@ -3,7 +3,7 @@ module Parser where
 
 import Data.Char
 import Control.Monad.Except
-import Errors
+import PartialT
 import UntypedLambda
 }
 

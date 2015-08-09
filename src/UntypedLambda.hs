@@ -3,7 +3,7 @@ module UntypedLambda where
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Trans.Free
-import Errors
+import PartialT
 import Debug.Trace
 
 data Command = StepTest Integer Term | ConfidenceTest Double Term deriving Show

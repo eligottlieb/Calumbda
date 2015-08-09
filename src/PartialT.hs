@@ -1,4 +1,4 @@
-module Errors where
+module PartialT where
 
 import Control.Monad.Trans.Free
 import Control.Monad.Identity
