@@ -1,6 +1,7 @@
 module Main where
 
 import System.IO
+import System.Console.Haskeline
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Trans.Free
@@ -16,19 +17,19 @@ stepsConfidence 1 = 0.0
 stepsConfidence m = 1 - 1 / sqrt (fromIntegral m)
 
 data Calude = Normalized Value | Failed EvalError |
-              Nontermination Double deriving Show
-caludeSteps :: Term -> Integer -> Calude
-caludeSteps t m = case runThrowsPartial $ evaluation of
+              NotYet Integer (ThrowsPartial StuckState Value)
+instance Show Calude where
+  show (Normalized v) = "Normalized: " ++ show v
+  show (Failed e) = "Evaluation error: " ++ show e
+  show (NotYet n p) = "Nontermination: p_" ++ show n ++ "(...) = " ++
+                      show (stepsConfidence n)
+
+calude :: Term -> Integer -> Calude
+calude t m = case runThrowsPartial $ evaluation of
   Left (EvalFailure err) -> Failed err
   Right (Pure val) -> Normalized val
-  Right (Free _) -> Nontermination (stepsConfidence m)
+  Right (Free w) -> NotYet m (wrap w)
   where evaluation = unwrapN m (eval [] t)
-caludeConfidence :: Term -> Double -> Calude
-caludeConfidence t q = case runThrowsPartial $ evaluation of
-  Left (EvalFailure err) -> Failed err
-  Right (Pure val) -> Normalized val
-  Right (Free _) -> Nontermination q
-  where evaluation = unwrapN (confidenceSteps q) (eval [] t)
 
 flushStr :: String -> IO ()
 flushStr str = putStr str >> hFlush stdout
@@ -37,27 +38,28 @@ readPrompt :: String -> IO String
 readPrompt prompt = flushStr prompt >> getLine
 
 command :: Command -> Calude
-command (StepTest m t) = caludeSteps t m
-command (ConfidenceTest q t) = caludeConfidence t q
+command (StepTest m t) = calude t m
+command (ConfidenceTest q t) = calude t (confidenceSteps q)
 
 readCommand :: String -> ThrowsError StuckState Command
 readCommand = lambdaParser . lexer
 
-commandString :: String -> IO String
+commandString :: String -> String
 commandString c = case fmap command $ readCommand c of
-  Left err -> return $ show err
-  Right val -> return $ show val
+  Left err -> show err
+  Right val -> show val
 
-evalAndPrint :: String -> IO ()
-evalAndPrint expr = commandString expr >>= putStrLn
-
-untilM :: Monad m => (a -> Bool) -> m a -> (a -> m b) -> b -> m b
-untilM pred first second otherwise = do
-  result <- first
-  if pred result then
-    second result >> untilM pred first second otherwise
-  else
-    return otherwise
+evalAndPrint :: String -> InputT IO ()
+evalAndPrint expr = outputStrLn $ commandString expr
 
 main :: IO ()
-main = untilM (/= ":quit") (readPrompt ">> ") evalAndPrint ()
+main = runInputT defaultSettings loop
+  where
+    loop :: InputT IO ()
+    loop = do
+      maybeLine <- getInputLine ">> "
+      case maybeLine of
+        Nothing -> return ()
+        Just ":quit" -> return ()
+        Just line -> do evalAndPrint line
+                        loop
