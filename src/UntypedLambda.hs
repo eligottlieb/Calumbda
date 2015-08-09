@@ -8,10 +8,10 @@ import Debug.Trace
 
 data Command = StepTest Integer Term | ConfidenceTest Double Term deriving Show
 
-data Value = IntConst Integer | Abstraction String Term
+data Value = IntConst Integer | Abstraction String Term (Maybe Env)
 instance Show Value where
   show (IntConst n) = show n
-  show (Abstraction str t) = "λ" ++ str ++ "." ++ show t
+  show (Abstraction str t _) = "λ" ++ str ++ "." ++ show t
 data Term = Variable String | ValTerm Value | Application Term Term |
             Addition Term Term
 instance Show Term where
@@ -25,11 +25,16 @@ instance Show Term where
     _ -> "(" ++ show y ++ ")")
 
 type Env = [(String, Value)]
+
+defaultEnv :: Maybe Env -> Env
+defaultEnv (Just e) = e
+defaultEnv Nothing = []
+
 data DynamicType = IntType | Arrow deriving Show
 
 dynamicType :: Value -> DynamicType
 dynamicType (IntConst _) = IntType
-dynamicType (Abstraction _ _) = Arrow
+dynamicType (Abstraction _ _ _) = Arrow
 
 data EvalError = UnboundVar String | DynamicTypeError DynamicType Value
   deriving Show
@@ -47,9 +52,9 @@ eval env (Variable str) = liftPartial $ getVar env str
 eval env (Application func arg) = rewrap $ do
   fval <- rewrap $ eval env func
   case fval of
-    Abstraction var body -> do
+    Abstraction var body closure -> do
           argVal <- rewrap $ eval env arg
-          rewrap $ eval ((var, argVal):env) body
+          rewrap $ eval ((var, argVal):defaultEnv closure) body
     val@(_) -> throwError . EvalFailure $ DynamicTypeError Arrow val
 eval env (Addition tx ty) = rewrap $ do
   x <- rewrap $ eval env tx
@@ -58,4 +63,6 @@ eval env (Addition tx ty) = rewrap $ do
     (IntConst x', IntConst y') -> return $ IntConst (x' + y')
     (IntConst _, _) -> throwError . EvalFailure $ DynamicTypeError IntType y
     _ -> throwError . EvalFailure $ DynamicTypeError IntType x
+eval env (ValTerm (Abstraction var body Nothing)) = liftPartial . Right $
+  Abstraction var body (Just env)
 eval _ (ValTerm v) = liftPartial $ Right v

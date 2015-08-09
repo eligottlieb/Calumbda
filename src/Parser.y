@@ -37,7 +37,7 @@ Term : Value          { ValTerm $1 }
      | Term '+' Term  {Addition $1 $3}
 Value   :: { Value }
 Value : int               { IntConst $1 }
-      | 'λ' var '.' Term  { Abstraction $2 $4 }
+      | 'λ' var '.' Term  { Abstraction $2 $4 Nothing }
 
 {
 happyError :: [Token] -> ThrowsError StuckState a

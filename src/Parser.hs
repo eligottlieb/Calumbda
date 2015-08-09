@@ -122,7 +122,7 @@ happyReduction_9 ((HappyAbsSyn5  happy_var_4) `HappyStk`
 	_ `HappyStk`
 	happyRest)
 	 = HappyAbsSyn6
-		 (Abstraction happy_var_2 happy_var_4
+		 (Abstraction happy_var_2 happy_var_4 Nothing
 	) `HappyStk` happyRest
 
 happyNewToken action sts stk [] =
