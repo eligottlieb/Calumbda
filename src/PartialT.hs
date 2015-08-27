@@ -1,5 +1,6 @@
 module PartialT where
 
+import Data.List
 import Control.Monad.Trans.Free
 import Control.Monad.Identity
 import Control.Monad.Except
@@ -22,7 +23,7 @@ unwrap m = FreeT $ do
     Free (Identity w) -> runFreeT w
 
 unwrapN :: Monad m => Integer -> PartialT m a -> PartialT m a
-unwrapN n m = (iterate unwrap m) !! (fromIntegral n)
+unwrapN n m = genericIndex (iterate unwrap m) n
 
 liftPartial :: Monad m => m a -> PartialT m a
 liftPartial a = FreeT (a >>= return . Pure)
